@@ -82,7 +82,7 @@ EnumGenerator::~EnumGenerator() {}
 
 void EnumGenerator::GenerateDefinition(io::Printer* printer) {
   std::map<string, string> vars;
-  vars["classname"] = FullNameToC(descriptor_->full_name());
+  vars["classname"]	= PkgClassNameToLower();
   vars["shortname"] = descriptor_->name();
   vars["uc_name"] = FullNameToUpper(descriptor_->full_name());
 
@@ -98,7 +98,7 @@ void EnumGenerator::GenerateDefinition(io::Printer* printer) {
 
 
   vars["opt_comma"] = ",";
-  vars["prefix"] = FullNameToUpper(descriptor_->full_name()) + "__";
+  vars["prefix"] = ToUpper(descriptor_->name()) + "_";
   for (int i = 0; i < descriptor_->value_count(); i++) {
     vars["name"] = descriptor_->value(i)->name();
     vars["number"] = SimpleItoa(descriptor_->value(i)->number());
@@ -120,9 +120,9 @@ void EnumGenerator::GenerateDefinition(io::Printer* printer) {
     }
   }
 
-  printer->Print(vars, "  PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE($uc_name$)\n");
+  printer->Print(vars, "PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE($uc_name$)\n");
   printer->Outdent();
-  printer->Print(vars, "} $classname$;\n");
+  printer->Print(vars, "} $classname$_t;\n");
 }
 
 void EnumGenerator::GenerateDescriptorDeclarations(io::Printer* printer) {
@@ -132,11 +132,10 @@ void EnumGenerator::GenerateDescriptorDeclarations(io::Printer* printer) {
   } else {
     vars["dllexport"] = dllexport_decl_ + " ";
   }
-  vars["classname"] = FullNameToC(descriptor_->full_name());
-  vars["lcclassname"] = FullNameToLower(descriptor_->full_name());
+  vars["classname"] = PkgClassNameToLower();
 
   printer->Print(vars,
-    "extern $dllexport$const ProtobufCEnumDescriptor    $lcclassname$__descriptor;\n");
+    "extern $dllexport$const ProtobufCEnumDescriptor    $classname$_descriptor;\n");
 }
 
 struct ValueIndex
@@ -154,7 +153,7 @@ void EnumGenerator::GenerateValueInitializer(io::Printer *printer, int index)
     descriptor_->file()->options().optimize_for() ==
     FileOptions_OptimizeMode_CODE_SIZE;
   vars["enum_value_name"] = vd->name();
-  vars["c_enum_value_name"] = FullNameToUpper(descriptor_->full_name()) + "__" + vd->name();
+  vars["c_enum_value_name"] = FullNameToUpper(descriptor_->name()) + "_" + ToUpper(vd->name());
   vars["value"] = SimpleItoa(vd->number());
   if (optimize_code_size)
     printer->Print(vars, "  { NULL, NULL, $value$ }, /* CODE_SIZE */\n");
@@ -184,8 +183,8 @@ static int compare_value_indices_by_name(const void *a, const void *b)
 void EnumGenerator::GenerateEnumDescriptor(io::Printer* printer) {
   std::map<string, string> vars;
   vars["fullname"] = descriptor_->full_name();
-  vars["lcclassname"] = FullNameToLower(descriptor_->full_name());
-  vars["cname"] = FullNameToC(descriptor_->full_name());
+  vars["lcclassname"] = PkgClassNameToLower();
+  vars["classname"]	= PkgClassNameToLower();
   vars["shortname"] = descriptor_->name();
   vars["packagename"] = descriptor_->file()->package();
   vars["value_count"] = SimpleItoa(descriptor_->value_count());
@@ -226,8 +225,7 @@ void EnumGenerator::GenerateEnumDescriptor(io::Printer* printer) {
 
   vars["unique_value_count"] = SimpleItoa(n_unique_values);
   printer->Print(vars,
-      "static const ProtobufCEnumValue $lcclassname$__enum_values_by_number[$unique_value_count$] =\n"
-      "{\n");
+      "static const ProtobufCEnumValue $lcclassname$_enum_values_by_number[$unique_value_count$] = {\n");
   if (descriptor_->value_count() > 0) {
     GenerateValueInitializer(printer, value_index[0].index);
     for (int j = 1; j < descriptor_->value_count(); j++) {
@@ -237,7 +235,7 @@ void EnumGenerator::GenerateEnumDescriptor(io::Printer* printer) {
     }
   }
   printer->Print(vars, "};\n");
-  printer->Print(vars, "static const ProtobufCIntRange $lcclassname$__value_ranges[] = {\n");
+  printer->Print(vars, "static const ProtobufCIntRange $lcclassname$_value_ranges[] = {\n");
   unsigned n_ranges = 0;
   if (descriptor_->value_count() > 0) {
     unsigned range_start = 0;
@@ -280,8 +278,7 @@ void EnumGenerator::GenerateEnumDescriptor(io::Printer* printer) {
     qsort(value_index, descriptor_->value_count(),
         sizeof(ValueIndex), compare_value_indices_by_name);
     printer->Print(vars,
-        "static const ProtobufCEnumValueIndex $lcclassname$__enum_values_by_name[$value_count$] =\n"
-        "{\n");
+        "static const ProtobufCEnumValueIndex $lcclassname$_enum_values_by_name[$value_count$] = {\n");
     for (int j = 0; j < descriptor_->value_count(); j++) {
       vars["index"] = SimpleItoa(value_index[j].final_index);
       vars["name"] = value_index[j].name;
@@ -292,32 +289,30 @@ void EnumGenerator::GenerateEnumDescriptor(io::Printer* printer) {
 
   if (optimize_code_size) {
     printer->Print(vars,
-        "const ProtobufCEnumDescriptor $lcclassname$__descriptor =\n"
-        "{\n"
+        "const ProtobufCEnumDescriptor $classname$_descriptor = {\n"
         "  PROTOBUF_C__ENUM_DESCRIPTOR_MAGIC,\n"
         "  NULL,NULL,NULL,NULL, /* CODE_SIZE */\n"
         "  $unique_value_count$,\n"
-        "  $lcclassname$__enum_values_by_number,\n"
+        "  $lcclassname$_enum_values_by_number,\n"
         "  0, NULL, /* CODE_SIZE */\n"
         "  $n_ranges$,\n"
-        "  $lcclassname$__value_ranges,\n"
+        "  $lcclassname$_value_ranges,\n"
         "  NULL,NULL,NULL,NULL   /* reserved[1234] */\n"
         "};\n");
   } else {
     printer->Print(vars,
-        "const ProtobufCEnumDescriptor $lcclassname$__descriptor =\n"
-        "{\n"
+        "const ProtobufCEnumDescriptor $classname$_descriptor = {\n"
         "  PROTOBUF_C__ENUM_DESCRIPTOR_MAGIC,\n"
         "  \"$fullname$\",\n"
         "  \"$shortname$\",\n"
-        "  \"$cname$\",\n"
+        "  \"$classname$\",\n"
         "  \"$packagename$\",\n"
         "  $unique_value_count$,\n"
-        "  $lcclassname$__enum_values_by_number,\n"
+        "  $lcclassname$_enum_values_by_number,\n"
         "  $value_count$,\n"
-        "  $lcclassname$__enum_values_by_name,\n"
+        "  $lcclassname$_enum_values_by_name,\n"
         "  $n_ranges$,\n"
-        "  $lcclassname$__value_ranges,\n"
+        "  $lcclassname$_value_ranges,\n"
         "  NULL,NULL,NULL,NULL   /* reserved[1234] */\n"
         "};\n");
   }

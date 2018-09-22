@@ -187,6 +187,13 @@ inline int FieldSyntax(const FieldDescriptor* field) {
 #else
   return 2;
 #endif
+
+//#define PkgName() descriptor_->file()->package() + "_"
+//#define PkgClassNameToLower() ToLower(PkgName() + descriptor_->name())
+#define PkgName() descriptor_->file()->package()
+#define PkgClassNameToLower() CamelToLower(PkgName() + descriptor_->name())
+#define PkgClassNameToUpper() ToUpper(PkgName() + "_" + descriptor_->name())
+
 }
 
 }  // namespace c

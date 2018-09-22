@@ -13,9 +13,14 @@ int main(int argc, char* argv[]) {
 
   if (invocation_basename == legacy_name) {
     google::protobuf::compiler::CommandLineInterface cli;
+	google::protobuf::compiler::c::GenDescList c_desclist;
     cli.RegisterGenerator("--c_out", &c_generator, "Generate C/H files.");
+	cli.RegisterGenerator("--desc_out", &c_desclist, "Generate Descriptor files.");
     cli.SetVersionInfo(PACKAGE_STRING);
-    return cli.Run(argc, argv);
+	int ret;
+    ret = cli.Run(argc, argv);
+	c_desclist.GenerateDescFile();
+	return ret;
   }
 
   return google::protobuf::compiler::PluginMain(argc, argv, &c_generator);

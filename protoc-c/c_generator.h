@@ -68,10 +68,21 @@
 #include <string>
 #include <google/protobuf/compiler/code_generator.h>
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <list>
+using namespace std;
+
+
 namespace google {
 namespace protobuf {
 namespace compiler {
 namespace c {
+
+//#define PBC_FILE_PREFIX  "pbc_"
+#define PBC_FILE_PREFIX  ""
+#define PBC_FILE_POSTFIX  "_pbc"
 
 // CodeGenerator implementation which generates a C++ source file and
 // header.  If you create your own protocol compiler binary and you want
@@ -88,8 +99,32 @@ class LIBPROTOC_EXPORT CGenerator : public CodeGenerator {
                 OutputDirectory* output_directory,
                 string* error) const;
 
+  bool GenerateDescFile(string file);
  private:
   GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(CGenerator);
+};
+
+class LIBPROTOC_EXPORT GenDescList : public CodeGenerator {
+public:
+	GenDescList();
+	~GenDescList();
+
+	// implements CodeGenerator ----------------------------------------
+	bool Generate(const FileDescriptor *file,
+				  const string& parameter,
+				  OutputDirectory *output_directory,
+				  string *error) const;
+
+	bool GenerateDescFile(void);
+
+	// added by patrick
+	list<string>	*sl_include;
+	list<string>	*sl_desc;
+	mutable string	prefix;
+
+private:
+	GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(GenDescList);
+
 };
 
 }  // namespace c

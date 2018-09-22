@@ -120,6 +120,7 @@ void PrimitiveFieldGenerator::GenerateStructMembers(io::Printer* printer) const
     case FieldDescriptor::LABEL_REPEATED:
       printer->Print(vars, "size_t n_$name$$deprecated$;\n");
       printer->Print(vars, "$c_type$ *$name$$deprecated$;\n");
+  	  printer->Print(vars, "list_head_t l_$name$$deprecated$;\n");
       break;
   }
 }

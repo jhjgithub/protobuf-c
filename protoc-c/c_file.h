@@ -63,11 +63,13 @@
 #ifndef GOOGLE_PROTOBUF_COMPILER_C_FILE_H__
 #define GOOGLE_PROTOBUF_COMPILER_C_FILE_H__
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 #include <google/protobuf/stubs/common.h>
 #include <protoc-c/c_field.h>
+using namespace std;
 
 namespace google {
 namespace protobuf {

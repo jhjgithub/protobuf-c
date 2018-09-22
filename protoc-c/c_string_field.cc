@@ -77,7 +77,7 @@ void SetStringVariables(const FieldDescriptor* descriptor,
                         std::map<string, string>* variables) {
   (*variables)["name"] = FieldName(descriptor);
   (*variables)["default"] = FullNameToLower(descriptor->full_name())
-	+ "__default_value";
+	+ "_default_value";
   (*variables)["deprecated"] = FieldDeprecated(descriptor);
 }
 
@@ -101,6 +101,7 @@ void StringFieldGenerator::GenerateStructMembers(io::Printer* printer) const
     case FieldDescriptor::LABEL_REPEATED:
       printer->Print(variables_, "size_t n_$name$$deprecated$;\n");
       printer->Print(variables_, "char **$name$$deprecated$;\n");
+      printer->Print(variables_, "list_head_t l_$name$$deprecated$;\n");
       break;
   }
 }

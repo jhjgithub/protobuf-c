@@ -78,10 +78,14 @@ void SetEnumVariables(const FieldDescriptor* descriptor,
                       std::map<string, string>* variables) {
 
   (*variables)["name"] = FieldName(descriptor);
-  (*variables)["type"] = FullNameToC(descriptor->enum_type()->full_name());
+  string full_name = descriptor->enum_type()->full_name();
+  string classname = full_name.substr(0, full_name.find("."));
+  (*variables)["type"] = ToLower(classname + string("_") + 
+								 CamelToLower(descriptor->enum_type()->name()) + 
+								 string("_t"));
   const EnumValueDescriptor* default_value = descriptor->default_value_enum();
-  (*variables)["default"] = FullNameToUpper(default_value->type()->full_name())
-                          + "__" + default_value->name();
+  (*variables)["default"] = ToUpper(default_value->type()->name())
+						  + "_" + ToUpper(default_value->name());
   (*variables)["deprecated"] = FieldDeprecated(descriptor);
 }
 
@@ -110,6 +114,7 @@ void EnumFieldGenerator::GenerateStructMembers(io::Printer* printer) const
     case FieldDescriptor::LABEL_REPEATED:
       printer->Print(variables_, "size_t n_$name$$deprecated$;\n");
       printer->Print(variables_, "$type$ *$name$$deprecated$;\n");
+      printer->Print(variables_, "list_head_t l_$name$$deprecated$;\n");
       break;
   }
 }
@@ -131,14 +136,14 @@ void EnumFieldGenerator::GenerateStaticInit(io::Printer* printer) const
       break;
     case FieldDescriptor::LABEL_REPEATED:
       // no support for default?
-      printer->Print("0,NULL");
+      printer->Print("0,NULL,{0,0}");
       break;
   }
 }
 
 void EnumFieldGenerator::GenerateDescriptorInitializer(io::Printer* printer) const
 {
-  string addr = "&" + FullNameToLower(descriptor_->enum_type()->full_name()) + "__descriptor";
+  string addr = "&" + ToLower(PkgName() + "_" + CamelToLower(FieldScope(descriptor_)->name())) + "_descriptor";
   GenerateDescriptorInitializerGeneric(printer, true, "ENUM", addr);
 }
 

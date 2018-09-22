@@ -108,7 +108,7 @@ void FieldGenerator::GenerateDescriptorInitializerGeneric(io::Printer* printer,
 {
   std::map<string, string> variables;
   variables["TYPE"] = type_macro;
-  variables["classname"] = FullNameToC(FieldScope(descriptor_)->full_name());
+  variables["classname"] = ToLower(PkgName() + "_" + CamelToLower(FieldScope(descriptor_)->name())) + "_t";
   variables["name"] = FieldName(descriptor_);
   variables["proto_name"] = descriptor_->name();
   variables["descriptor_addr"] = descriptor_addr;
@@ -127,8 +127,9 @@ void FieldGenerator::GenerateDescriptorInitializerGeneric(io::Printer* printer,
 
   if (descriptor_->has_default_value()) {
     variables["default_value"] = string("&")
-                               + FullNameToLower(descriptor_->full_name())
-			       + "__default_value";
+                   + ToLower(PkgName() + "_" + CamelToLower(FieldScope(descriptor_)->name()))
+                   + "_" + ToLower(descriptor_->name()) 
+			       + "_default_value";
   } else if (FieldSyntax(descriptor_) == 3 &&
     descriptor_->type() == FieldDescriptor::TYPE_STRING) {
     variables["default_value"] = "&protobuf_c_empty_string";

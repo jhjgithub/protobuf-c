@@ -60,6 +60,8 @@
 
 // Modified to implement C code by Dave Benson.
 
+#include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -71,6 +73,8 @@
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format.h>
 #include <google/protobuf/descriptor.pb.h>
+
+using namespace std;
 
 namespace google {
 namespace protobuf {
@@ -109,14 +113,30 @@ MessageGenerator::MessageGenerator(const Descriptor* descriptor,
 
 MessageGenerator::~MessageGenerator() {}
 
+int MessageGenerator::GetRepeatedCount(void)
+{
+	int repeated_cnt = 0;
+
+	for (int i = 0; i < descriptor_->field_count(); i++) {
+		const FieldDescriptor *field = descriptor_->field(i);
+		if (field->label() == FieldDescriptor::LABEL_REPEATED) {
+			repeated_cnt++;
+		}
+	}
+
+	return repeated_cnt;
+}
+
 void MessageGenerator::
 GenerateStructTypedef(io::Printer* printer) {
+#if 0
   printer->Print("typedef struct _$classname$ $classname$;\n",
                  "classname", FullNameToC(descriptor_->full_name()));
 
   for (int i = 0; i < descriptor_->nested_type_count(); i++) {
     nested_generators_[i]->GenerateStructTypedef(printer);
   }
+#endif
 }
 
 void MessageGenerator::
@@ -138,9 +158,9 @@ GenerateStructDefinition(io::Printer* printer) {
   }
 
   std::map<string, string> vars;
-  vars["classname"] = FullNameToC(descriptor_->full_name());
-  vars["lcclassname"] = FullNameToLower(descriptor_->full_name());
-  vars["ucclassname"] = FullNameToUpper(descriptor_->full_name());
+  vars["classname"]	= PkgClassNameToLower();
+  vars["lcclassname"] = PkgClassNameToLower();
+  vars["ucclassname"] = PkgClassNameToUpper();
   vars["field_count"] = SimpleItoa(descriptor_->field_count());
   if (dllexport_decl_.empty()) {
     vars["dllexport"] = "";
@@ -158,7 +178,7 @@ GenerateStructDefinition(io::Printer* printer) {
 
     printer->Print("typedef enum {\n");
     printer->Indent();
-    printer->Print(vars, "$ucclassname$__$oneofname$__NOT_SET = 0,\n");
+    printer->Print(vars, "$ucclassname$_$oneofname$_NOT_SET = 0,\n");
     for (int j = 0; j < oneof->field_count(); j++) {
       const FieldDescriptor *field = oneof->field(j);
       vars["fieldname"] = FullNameToUpper(field->name());
@@ -167,9 +187,9 @@ GenerateStructDefinition(io::Printer* printer) {
       if (isLast) {
         vars["opt_comma"] = "";
       }
-      printer->Print(vars, "$ucclassname$__$oneofname$_$fieldname$ = $fieldnum$$opt_comma$\n");
+      printer->Print(vars, "$ucclassname$_$oneofname$_$fieldname$ = $fieldnum$$opt_comma$\n");
     }
-    printer->Print(vars, "  PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE($ucclassname$__$oneofname$)\n");
+    printer->Print(vars, "PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE($ucclassname$_$oneofname$)\n");
     printer->Outdent();
     printer->Print(vars, "} $foneofname$Case;\n\n");
   }
@@ -179,9 +199,14 @@ GenerateStructDefinition(io::Printer* printer) {
   PrintComment (printer, msgSourceLoc.leading_comments);
 
   printer->Print(vars,
-    "struct $dllexport$ _$classname$\n"
-    "{\n"
-    "  ProtobufCMessage base;\n");
+    "typedef struct $classname$_s {\n"
+    "  ProtobufCMessage base;\n"
+	"  struct {\n"
+	"    list_head_t link;\n"
+	"    uint32_t initialized:1,\n"
+	"             dummy:31;\n"
+	"  } anchor;\n\n"
+	);
 
   // Generate fields.
   printer->Indent();
@@ -221,7 +246,7 @@ GenerateStructDefinition(io::Printer* printer) {
   }
   printer->Outdent();
 
-  printer->Print(vars, "};\n");
+  printer->Print(vars, "} $classname$_t;\n\n");
 
   for (int i = 0; i < descriptor_->field_count(); i++) {
     const FieldDescriptor *field = descriptor_->field(i);
@@ -230,8 +255,9 @@ GenerateStructDefinition(io::Printer* printer) {
     }
   }
 
-  printer->Print(vars, "#define $ucclassname$__INIT \\\n"
-		       " { PROTOBUF_C_MESSAGE_INIT (&$lcclassname$__descriptor) \\\n    ");
+  printer->Print(vars, "#define $ucclassname$_INIT \\\n"
+		       " { PROTOBUF_C_MESSAGE_INIT (&$lcclassname$_descriptor) \\\n    ");
+  printer->Print(", { {0, 0}, 0, 0}");
   for (int i = 0; i < descriptor_->field_count(); i++) {
     const FieldDescriptor *field = descriptor_->field(i);
     if (field->containing_oneof() == NULL) {
@@ -243,12 +269,16 @@ GenerateStructDefinition(io::Printer* printer) {
     const OneofDescriptor *oneof = descriptor_->oneof_decl(i);
     vars["foneofname"] = FullNameToUpper(oneof->full_name());
     // Initialize the case enum
-    printer->Print(vars, ", $foneofname$__NOT_SET");
+    printer->Print(vars, ", $foneofname$_NOT_SET");
     // Initialize the union
     printer->Print(", {0}");
   }
-  printer->Print(" }\n\n\n");
-
+  printer->Print(" }\n\n");
+  printer->Print(vars, "/* ex) $ucclassname$_t *msg = $ucclassname$_NEW(); */\n");
+  printer->Print(vars, "#define $ucclassname$_NEW() ($classname$_t*)$classname$_new()\n\n");
+  printer->Print(vars, "/* ex) $ucclassname$_DEL(&msg);   // msg is pointer  */\n");
+  printer->Print(vars, "#define $ucclassname$_DEL(m) free(*m);*m=NULL\n\n");
+  printer->Print(vars, "#define $ucclassname$_TYPE_NAME ((char*)$lcclassname$_descriptor.name)\n\n\n");
 }
 
 void MessageGenerator::
@@ -259,39 +289,27 @@ GenerateHelperFunctionDeclarations(io::Printer* printer, bool is_submessage)
   }
 
   std::map<string, string> vars;
-  vars["classname"] = FullNameToC(descriptor_->full_name());
-  vars["lcclassname"] = FullNameToLower(descriptor_->full_name());
+  vars["classname"]	= PkgClassNameToLower() + "_t";
+  vars["lcclassname"] = PkgClassNameToLower();
   printer->Print(vars,
 		 "/* $classname$ methods */\n"
-		 "void   $lcclassname$__init\n"
-		 "                     ($classname$         *message);\n"
+		 "void   $lcclassname$_init($classname$ *message);\n"
 		);
   if (!is_submessage) {
     printer->Print(vars,
-		 "size_t $lcclassname$__get_packed_size\n"
-		 "                     (const $classname$   *message);\n"
-		 "size_t $lcclassname$__pack\n"
-		 "                     (const $classname$   *message,\n"
-		 "                      uint8_t             *out);\n"
-		 "size_t $lcclassname$__pack_to_buffer\n"
-		 "                     (const $classname$   *message,\n"
-		 "                      ProtobufCBuffer     *buffer);\n"
-		 "$classname$ *\n"
-		 "       $lcclassname$__unpack\n"
-		 "                     (ProtobufCAllocator  *allocator,\n"
-                 "                      size_t               len,\n"
-                 "                      const uint8_t       *data);\n"
-		 "void   $lcclassname$__free_unpacked\n"
-		 "                     ($classname$ *message,\n"
-		 "                      ProtobufCAllocator *allocator);\n"
+		 "size_t $lcclassname$_get_packed_size(const $classname$   *message);\n"
+		 "size_t $lcclassname$_pack(const $classname$   *message, uint8_t *out);\n"
+		 "size_t $lcclassname$_pack_to_buffer(const $classname$   *message, ProtobufCBuffer *buffer);\n"
+		 "$classname$ *$lcclassname$_unpack(ProtobufCAllocator  *allocator, size_t len, const uint8_t *data);\n"
+		 "void   $lcclassname$_free_unpacked($classname$ *message, ProtobufCAllocator *allocator);\n"
 		);
   }
 }
 
 void MessageGenerator::
 GenerateDescriptorDeclarations(io::Printer* printer) {
-  printer->Print("extern const ProtobufCMessageDescriptor $name$__descriptor;\n",
-                 "name", FullNameToLower(descriptor_->full_name()));
+  printer->Print("extern const ProtobufCMessageDescriptor $name$_descriptor;\n",
+                 "name", PkgClassNameToLower());
 
   for (int i = 0; i < descriptor_->nested_type_count(); i++) {
     nested_generators_[i]->GenerateDescriptorDeclarations(printer);
@@ -307,11 +325,10 @@ void MessageGenerator::GenerateClosureTypedef(io::Printer* printer)
     nested_generators_[i]->GenerateClosureTypedef(printer);
   }
   std::map<string, string> vars;
-  vars["name"] = FullNameToC(descriptor_->full_name());
+  vars["name"]	= PkgClassNameToLower();
+  vars["short"]	= PkgClassNameToLower();
   printer->Print(vars,
-                 "typedef void (*$name$_Closure)\n"
-		 "                 (const $name$ *message,\n"
-		 "                  void *closure_data);\n");
+                 "typedef void (*$name$_closure)(const $name$_t *message, void *closure_data);\n");
 }
 
 static int
@@ -332,57 +349,43 @@ GenerateHelperFunctionDefinitions(io::Printer* printer, bool is_submessage)
   }
 
   std::map<string, string> vars;
-  vars["classname"] = FullNameToC(descriptor_->full_name());
-  vars["lcclassname"] = FullNameToLower(descriptor_->full_name());
-  vars["ucclassname"] = FullNameToUpper(descriptor_->full_name());
+  vars["classname"]	= PkgClassNameToLower();
+  vars["lcclassname"] = PkgClassNameToLower();
+  vars["ucclassname"] = PkgClassNameToUpper();
   printer->Print(vars,
-		 "void   $lcclassname$__init\n"
-		 "                     ($classname$         *message)\n"
+		 "void $lcclassname$_init($classname$_t *message)\n"
 		 "{\n"
-		 "  static const $classname$ init_value = $ucclassname$__INIT;\n"
+		 "  static $classname$_t init_value = $ucclassname$_INIT;\n"
 		 "  *message = init_value;\n"
 		 "}\n");
   if (!is_submessage) {
     printer->Print(vars,
-		 "size_t $lcclassname$__get_packed_size\n"
-		 "                     (const $classname$ *message)\n"
+		 "size_t $lcclassname$_get_packed_size(const $classname$_t *message)\n"
 		 "{\n"
-		 "  assert(message->base.descriptor == &$lcclassname$__descriptor);\n"
-		 "  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));\n"
-		 "}\n"
-		 "size_t $lcclassname$__pack\n"
-		 "                     (const $classname$ *message,\n"
-		 "                      uint8_t       *out)\n"
+		 "  assert(message->base.descriptor == &$lcclassname$_descriptor);\n"
+		 "  return protobuf_c_message_get_packed_size((const ProtobufCMessage*)(message));\n"
+		 "}\n\n"
+		 "size_t $lcclassname$_pack(const $classname$_t *message, uint8_t *out)\n"
 		 "{\n"
-		 "  assert(message->base.descriptor == &$lcclassname$__descriptor);\n"
-		 "  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);\n"
-		 "}\n"
-		 "size_t $lcclassname$__pack_to_buffer\n"
-		 "                     (const $classname$ *message,\n"
-		 "                      ProtobufCBuffer *buffer)\n"
+		 "  assert(message->base.descriptor == &$lcclassname$_descriptor);\n"
+		 "  return protobuf_c_message_pack((const ProtobufCMessage*)message, out);\n"
+		 "}\n\n"
+		 "size_t $lcclassname$_pack_to_buffer(const $classname$_t *message, ProtobufCBuffer *buffer)\n"
 		 "{\n"
-		 "  assert(message->base.descriptor == &$lcclassname$__descriptor);\n"
-		 "  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);\n"
-		 "}\n"
-		 "$classname$ *\n"
-		 "       $lcclassname$__unpack\n"
-		 "                     (ProtobufCAllocator  *allocator,\n"
-		 "                      size_t               len,\n"
-                 "                      const uint8_t       *data)\n"
+		 "  assert(message->base.descriptor == &$lcclassname$_descriptor);\n"
+		 "  return protobuf_c_message_pack_to_buffer((const ProtobufCMessage*)message, buffer);\n"
+		 "}\n\n"
+		 "$classname$_t *$lcclassname$_unpack(ProtobufCAllocator  *allocator, size_t  len, const uint8_t *data)\n"
 		 "{\n"
-		 "  return ($classname$ *)\n"
-		 "     protobuf_c_message_unpack (&$lcclassname$__descriptor,\n"
-		 "                                allocator, len, data);\n"
-		 "}\n"
-		 "void   $lcclassname$__free_unpacked\n"
-		 "                     ($classname$ *message,\n"
-		 "                      ProtobufCAllocator *allocator)\n"
+		 "  return ($classname$_t *)protobuf_c_message_unpack (&$lcclassname$_descriptor, allocator, len, data);\n"
+		 "}\n\n"
+		 "void $lcclassname$_free_unpacked($classname$_t *message, ProtobufCAllocator *allocator)\n"
 		 "{\n"
 		 "  if(!message)\n"
 		 "    return;\n"
-		 "  assert(message->base.descriptor == &$lcclassname$__descriptor);\n"
+		 "  assert(message->base.descriptor == &$lcclassname$_descriptor);\n"
 		 "  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);\n"
-		 "}\n"
+		 "}\n\n"
 		);
   }
 }
@@ -391,11 +394,12 @@ void MessageGenerator::
 GenerateMessageDescriptor(io::Printer* printer) {
     std::map<string, string> vars;
     vars["fullname"] = descriptor_->full_name();
-    vars["classname"] = FullNameToC(descriptor_->full_name());
-    vars["lcclassname"] = FullNameToLower(descriptor_->full_name());
+	vars["classname"]	= PkgClassNameToLower();
+	vars["lcclassname"] = PkgClassNameToLower();
     vars["shortname"] = ToCamel(descriptor_->name());
     vars["n_fields"] = SimpleItoa(descriptor_->field_count());
     vars["packagename"] = descriptor_->file()->package();
+    vars["init_func"]	= ToLower(PkgName() + "_" + CamelToLower(descriptor_->name())) + "_init";;
 
     bool optimize_code_size = descriptor_->file()->options().has_optimize_for() &&
         descriptor_->file()->options().optimize_for() ==
@@ -471,7 +475,9 @@ GenerateMessageDescriptor(io::Printer* printer) {
 	case FieldDescriptor::CPPTYPE_ENUM:
 	  {
 	    const EnumValueDescriptor *vd = fd->default_value_enum();
-	    vars["field_dv_ctype"] = FullNameToC(vd->type()->full_name());
+        string full_name = vd->type()->full_name();
+        string classname = full_name.substr(0, full_name.find("."));
+        vars["field_dv_ctype"] = CamelToLower(classname + vd->type()->name() + "_t");
 	    break;
 	  }
 	default:
@@ -479,14 +485,13 @@ GenerateMessageDescriptor(io::Printer* printer) {
 	  break;
 	}
 	if (!already_defined)
-	  printer->Print(vars, "$maybe_static$const $field_dv_ctype$ $lcclassname$__$lcname$__default_value$field_dv_ctype_suffix$ = $default_value$;\n");
+	  printer->Print(vars, "$maybe_static$const $field_dv_ctype$ $lcclassname$_$lcname$_default_value$field_dv_ctype_suffix$ = $default_value$;\n");
       }
     }
 
     if ( descriptor_->field_count() ) {
   printer->Print(vars,
-	"static const ProtobufCFieldDescriptor $lcclassname$__field_descriptors[$n_fields$] =\n"
-	"{\n");
+	"static const ProtobufCFieldDescriptor $lcclassname$_field_descriptors[$n_fields$] = {\n");
   printer->Indent();
   const FieldDescriptor **sorted_fields = new const FieldDescriptor *[descriptor_->field_count()];
   for (int i = 0; i < descriptor_->field_count(); i++) {
@@ -510,7 +515,7 @@ GenerateMessageDescriptor(io::Printer* printer) {
     }
     qsort (field_indices, descriptor_->field_count(), sizeof (NameIndex),
         compare_name_indices_by_name);
-    printer->Print(vars, "static const unsigned $lcclassname$__field_indices_by_name[] = {\n");
+    printer->Print(vars, "static const unsigned $lcclassname$_field_indices_by_name[] = {\n");
     for (int i = 0; i < descriptor_->field_count(); i++) {
       vars["index"] = SimpleItoa(field_indices[i].index);
       vars["name"] = field_indices[i].name;
@@ -527,7 +532,7 @@ GenerateMessageDescriptor(io::Printer* printer) {
   }
   int n_ranges = WriteIntRanges(printer,
 				descriptor_->field_count(), values,
-				vars["lcclassname"] + "__number_ranges");
+				vars["lcclassname"] + "_number_ranges");
   delete [] values;
   delete [] sorted_fields;
 
@@ -538,14 +543,13 @@ GenerateMessageDescriptor(io::Printer* printer) {
        * not a standard. */
       vars["n_ranges"] = "0";
   printer->Print(vars,
-        "#define $lcclassname$__field_descriptors NULL\n"
-        "#define $lcclassname$__field_indices_by_name NULL\n"
-        "#define $lcclassname$__number_ranges NULL\n");
+        "#define $lcclassname$_field_descriptors NULL\n"
+        "#define $lcclassname$_field_indices_by_name NULL\n"
+        "#define $lcclassname$_number_ranges NULL\n");
     }
 
   printer->Print(vars,
-      "const ProtobufCMessageDescriptor $lcclassname$__descriptor =\n"
-      "{\n"
+      "const ProtobufCMessageDescriptor $lcclassname$_descriptor = {\n"
       "  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,\n");
   if (optimize_code_size) {
     printer->Print("  NULL,NULL,NULL,NULL, /* CODE_SIZE */\n");
@@ -557,19 +561,19 @@ GenerateMessageDescriptor(io::Printer* printer) {
         "  \"$packagename$\",\n");
   }
   printer->Print(vars,
-      "  sizeof($classname$),\n"
+      "  sizeof($classname$_t),\n"
       "  $n_fields$,\n"
-      "  $lcclassname$__field_descriptors,\n");
+      "  $lcclassname$_field_descriptors,\n");
   if (optimize_code_size) {
     printer->Print("  NULL, /* CODE_SIZE */\n");
   } else {
     printer->Print(vars,
-        "  $lcclassname$__field_indices_by_name,\n");
+        "  $lcclassname$_field_indices_by_name,\n");
   }
   printer->Print(vars,
       "  $n_ranges$,"
-      "  $lcclassname$__number_ranges,\n"
-      "  (ProtobufCMessageInit) $lcclassname$__init,\n"
+      "  $lcclassname$_number_ranges,\n"
+      "  (ProtobufCMessageInit) $init_func$,\n"
       "  NULL,NULL,NULL    /* reserved[123] */\n"
       "};\n");
 }

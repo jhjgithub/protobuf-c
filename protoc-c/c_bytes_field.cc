@@ -108,6 +108,7 @@ void BytesFieldGenerator::GenerateStructMembers(io::Printer* printer) const
     case FieldDescriptor::LABEL_REPEATED:
       printer->Print(variables_, "size_t n_$name$$deprecated$;\n");
       printer->Print(variables_, "ProtobufCBinaryData *$name$$deprecated$;\n");
+      printer->Print(variables_, "list_head_t l_$name$$deprecated$;\n");
       break;
   }
 }
@@ -115,7 +116,7 @@ void BytesFieldGenerator::GenerateDefaultValueDeclarations(io::Printer* printer)
 {
   std::map<string, string> vars;
   vars["default_value_data"] = FullNameToLower(descriptor_->full_name())
-	                     + "__default_value_data";
+	                     + "_default_value_data";
   printer->Print(vars, "extern uint8_t $default_value_data$[];\n");
 }
 
@@ -123,7 +124,7 @@ void BytesFieldGenerator::GenerateDefaultValueImplementations(io::Printer* print
 {
   std::map<string, string> vars;
   vars["default_value_data"] = FullNameToLower(descriptor_->full_name())
-	                     + "__default_value_data";
+	                     + "_default_value_data";
   vars["escaped"] = CEscape(descriptor_->default_value_string());
   printer->Print(vars, "uint8_t $default_value_data$[] = \"$escaped$\";\n");
 }
@@ -133,7 +134,7 @@ string BytesFieldGenerator::GetDefaultValue(void) const
 	+ SimpleItoa(descriptor_->default_value_string().size())
 	+ ", "
 	+ FullNameToLower(descriptor_->full_name())
-	+ "__default_value_data }";
+	+ "_default_value_data }";
 }
 void BytesFieldGenerator::GenerateStaticInit(io::Printer* printer) const
 {
@@ -148,7 +149,7 @@ void BytesFieldGenerator::GenerateStaticInit(io::Printer* printer) const
       break;
     case FieldDescriptor::LABEL_REPEATED:
       // no support for default?
-      printer->Print("0,NULL");
+      printer->Print("0,NULL,{0,0}");
       break;
   }
 }

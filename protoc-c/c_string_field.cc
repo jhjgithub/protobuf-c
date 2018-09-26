@@ -137,7 +137,7 @@ void StringFieldGenerator::GenerateStaticInit(io::Printer* printer) const
       printer->Print(vars, "$default$");
       break;
     case FieldDescriptor::LABEL_REPEATED:
-      printer->Print(vars, "0,NULL");
+      printer->Print(vars, "0,NULL, {NULL, NULL}");
       break;
   }
 }

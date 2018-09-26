@@ -166,7 +166,7 @@ void PrimitiveFieldGenerator::GenerateStaticInit(io::Printer* printer) const
       printer->Print(vars, "$default_value$");
       break;
     case FieldDescriptor::LABEL_REPEATED:
-      printer->Print("0,NULL");
+      printer->Print("0,NULL, {NULL, NULL}");
       break;
   }
 }

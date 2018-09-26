@@ -98,7 +98,7 @@ void EnumGenerator::GenerateDefinition(io::Printer* printer) {
 
 
   vars["opt_comma"] = ",";
-  vars["prefix"] = ToUpper(descriptor_->name()) + "_";
+  vars["prefix"] = CamelToUpper(descriptor_->name()) + "_";
   for (int i = 0; i < descriptor_->value_count(); i++) {
     vars["name"] = descriptor_->value(i)->name();
     vars["number"] = SimpleItoa(descriptor_->value(i)->number());
@@ -122,7 +122,7 @@ void EnumGenerator::GenerateDefinition(io::Printer* printer) {
 
   printer->Print(vars, "PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE($uc_name$)\n");
   printer->Outdent();
-  printer->Print(vars, "} $classname$_t;\n");
+  printer->Print(vars, "} $classname$_t;\n\n");
 }
 
 void EnumGenerator::GenerateDescriptorDeclarations(io::Printer* printer) {

@@ -84,7 +84,7 @@ void SetEnumVariables(const FieldDescriptor* descriptor,
 								 CamelToLower(descriptor->enum_type()->name()) + 
 								 string("_t"));
   const EnumValueDescriptor* default_value = descriptor->default_value_enum();
-  (*variables)["default"] = ToUpper(default_value->type()->name())
+  (*variables)["default"] = ToUpper(CamelToUpper(default_value->type()->name()))
 						  + "_" + ToUpper(default_value->name());
   (*variables)["deprecated"] = FieldDeprecated(descriptor);
 }

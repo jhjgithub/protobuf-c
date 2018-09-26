@@ -85,16 +85,18 @@ void MessageFieldGenerator::GenerateStructMembers(io::Printer* printer) const
 {
   std::map<string, string> vars;
   vars["name"] = FieldName(descriptor_);
-  vars["type"] = FullNameToLower(descriptor_->file()->package() + descriptor_->message_type()->name() + "_t");
+  string full_name = descriptor_->message_type()->full_name();
+  string classname = full_name.substr(0, full_name.find("."));
+  vars["type"] = ToLower(classname + string("_") + CamelToLower(descriptor_->message_type()->name()));
   vars["deprecated"] = FieldDeprecated(descriptor_);
   switch (descriptor_->label()) {
     case FieldDescriptor::LABEL_REQUIRED:
     case FieldDescriptor::LABEL_OPTIONAL:
-      printer->Print(vars, "$type$ *$name$$deprecated$;\n");
+      printer->Print(vars, "$type$_t *$name$$deprecated$;\n");
       break;
     case FieldDescriptor::LABEL_REPEATED:
       printer->Print(vars, "size_t n_$name$$deprecated$;\n");
-      printer->Print(vars, "$type$ **$name$$deprecated$;\n");
+      printer->Print(vars, "$type$_t **$name$$deprecated$;\n");
       printer->Print(vars, "list_head_t l_$name$$deprecated$;\n");
       printer->Print(vars, "void* (*l_$name$$deprecated$_new)(void);\n");
       break;
@@ -115,7 +117,7 @@ void MessageFieldGenerator::GenerateStaticInit(io::Printer* printer) const
       printer->Print("NULL");
       break;
     case FieldDescriptor::LABEL_REPEATED:
-      printer->Print("0,NULL");
+      printer->Print("0, NULL, {NULL, NULL}, NULL");
       break;
   }
 }

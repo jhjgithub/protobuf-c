@@ -190,9 +190,10 @@ inline int FieldSyntax(const FieldDescriptor* field) {
 
 //#define PkgName() descriptor_->file()->package() + "_"
 //#define PkgClassNameToLower() ToLower(PkgName() + descriptor_->name())
-#define PkgName() descriptor_->file()->package()
-#define PkgClassNameToLower() CamelToLower(PkgName() + descriptor_->name())
-#define PkgClassNameToUpper() ToUpper(PkgName() + "_" + descriptor_->name())
+//#define PkgClassNameToUpper() ToUpper(PkgName() + "_" + descriptor_->name())
+#define PkgName() (descriptor_->file()->package())
+#define PkgClassNameToLower() ToLower(PkgName()) + "_" + CamelToLower(descriptor_->name())
+#define PkgClassNameToUpper() ToUpper(PkgName()) + "_" + CamelToUpper(descriptor_->name())
 
 }
 

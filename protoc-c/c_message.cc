@@ -257,7 +257,7 @@ GenerateStructDefinition(io::Printer* printer) {
 
   printer->Print(vars, "#define $ucclassname$_INIT \\\n"
 		       " { PROTOBUF_C_MESSAGE_INIT (&$lcclassname$_descriptor) \\\n    ");
-  printer->Print(", { {0, 0}, 0, 0}");
+  printer->Print(", { {NULL, NULL}, 0, 0}");
   for (int i = 0; i < descriptor_->field_count(); i++) {
     const FieldDescriptor *field = descriptor_->field(i);
     if (field->containing_oneof() == NULL) {
@@ -477,7 +477,7 @@ GenerateMessageDescriptor(io::Printer* printer) {
 	    const EnumValueDescriptor *vd = fd->default_value_enum();
         string full_name = vd->type()->full_name();
         string classname = full_name.substr(0, full_name.find("."));
-        vars["field_dv_ctype"] = CamelToLower(classname + vd->type()->name() + "_t");
+        vars["field_dv_ctype"] = ToLower(classname + "_") + CamelToLower(vd->type()->name() + "_t");
 	    break;
 	  }
 	default:

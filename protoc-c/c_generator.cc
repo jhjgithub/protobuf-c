@@ -228,7 +228,7 @@ bool GenDescList::GenerateDescFile(void)
 	}
 
 	fname = prefix + ".inc";
-	of_inc.open(fname.c_str(), ios::out | ios::app);
+	of_inc.open(fname.c_str(), ios::out | ios::trunc);
 
 	if (!of_inc.is_open()) {
 		cout << "Cannot open output file: " << prefix << "\n";
@@ -247,7 +247,7 @@ bool GenDescList::GenerateDescFile(void)
 	of_inc.close();
 
 	fname = prefix + ".desc";
-	of_desc.open(fname.c_str(), ios::out | ios::app);
+	of_desc.open(fname.c_str(), ios::out | ios::trunc);
 
 	//of_desc << "desc_list_t g_desclist[] = {\n";
 

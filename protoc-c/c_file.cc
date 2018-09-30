@@ -191,7 +191,8 @@ void FileGenerator::GenerateHeader(io::Printer* printer) {
     enum_generators_[i]->GenerateDefinition(printer);
   }
 
-  // Generate ulist function
+#if 0
+  // FIXME: Allocating function of each message
   printer->Print("\n/* --- list function prototype --- */\n\n");
 
   for (int i = 0; i < file_->message_type_count(); i++) {
@@ -201,6 +202,7 @@ void FileGenerator::GenerateHeader(io::Printer* printer) {
 
     printer->Print(vars, "void* $fullname$_new(void);\n");
   }
+#endif
 
   // Generate class definitions.
   printer->Print("\n/* --- messages --- */\n\n");
@@ -287,8 +289,10 @@ void FileGenerator::GenerateSource(io::Printer* printer) {
   }
 #endif
 
+#if 0
 	///////////////////////////////////////////////////
 	// list function
+    // FIXME: Allocation of each message
 
 	for (int i = 0; i < file_->message_type_count(); i++) {
 		std::map<string, string> vars;
@@ -319,6 +323,7 @@ void FileGenerator::GenerateSource(io::Printer* printer) {
 		printer->Outdent();
 		printer->Print(vars, "}\n\n");
 	}
+#endif
 
   for (int i = 0; i < file_->message_type_count(); i++) {
     message_generators_[i]->GenerateHelperFunctionDefinitions(printer, false);

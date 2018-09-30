@@ -47,6 +47,7 @@
 
 #include <stdlib.h>	/* for malloc, free */
 #include <string.h>	/* for strcmp, strlen, memcpy, memmove, memset */
+#include <stdio.h>
 
 #include "protobuf-c.h"
 
@@ -3644,3 +3645,114 @@ protobuf_c_service_descriptor_get_method_by_name(const ProtobufCServiceDescripto
 		return desc->methods + desc->method_indices_by_name[start];
 	return NULL;
 }
+
+#if 0
+ProtobufCMessage*
+protobuf_c_message_alloc(ProtobufCMessageDescriptor *desc, ProtobufCAllocator *allocator)
+{
+	ProtobufCMessage *message = NULL;
+
+	if (allocator == NULL) {
+		allocator = &protobuf_c__allocator;
+	}
+
+	message = do_alloc(allocator, desc->sizeof_message);
+	// message_init_generic()
+	desc->message_init(message);
+
+	return message;
+}
+#endif
+
+ProtobufCMessage*
+protobuf_c_message_alloc(ProtobufCMessageDescriptor *desc, ProtobufCAllocator *allocator)
+{
+	ProtobufCMessage *message = NULL;
+	unsigned f;
+
+	if (allocator == NULL) {
+		allocator = &protobuf_c__allocator;
+	}
+
+	message = do_alloc(allocator, desc->sizeof_message);
+	//message_init_generic(desc, rv);
+	desc->message_init(message);
+
+	for (f = 0; f < desc->n_fields; f++) {
+		void *m_ptr = STRUCT_MEMBER_PTR(void *, message, desc->fields[f].offset);
+
+		if (desc->fields[f].label == PROTOBUF_C_LABEL_REPEATED) {
+			uint8_t *ptr = (uint8_t*)m_ptr;
+
+			ptr += sizeof(uint8_t*);
+			//INIT_LIST_HEAD((list_head_t*)ptr);
+
+			if (desc->fields[f].type == PROTOBUF_C_TYPE_STRING) {
+				// user self;
+			}
+			else if (desc->fields[f].type == PROTOBUF_C_TYPE_BYTES) {
+				// user self;
+			}
+			else if (desc->fields[f].type == PROTOBUF_C_TYPE_MESSAGE) {
+				// user self;
+			}
+		}
+		else if (desc->fields[f].type == PROTOBUF_C_TYPE_STRING) {
+			// user self;
+		}
+		else if (desc->fields[f].type == PROTOBUF_C_TYPE_BYTES) {
+			// user self;
+		}
+		else if (desc->fields[f].type == PROTOBUF_C_TYPE_MESSAGE) {
+			ProtobufCMessage **m = m_ptr;
+			ProtobufCMessage *field_message;
+			ProtobufCMessageDescriptor *field_desc = (ProtobufCMessageDescriptor*)desc->fields[f].descriptor;
+			
+			field_message = protobuf_c_message_alloc(field_desc, allocator);
+
+			if (field_message == NULL) {
+				protobuf_c_message_free_unpacked(message, allocator);
+				message = NULL;
+				goto END;
+			}
+
+			*m =field_message;
+		}
+	}
+
+	ASSERT_IS_MESSAGE(message);
+
+END:
+	return message;
+}
+
+ProtobufCMessage* protobuf_c_message_dup(ProtobufCMessage *message)
+{
+	ProtobufCMessage *rv_message = NULL;
+	uint8_t *buf;
+	uint32_t len;
+
+	if ((len = protobuf_c_message_get_packed_size(message)) < 1) {
+		return NULL;
+	}
+
+	buf = do_alloc(&protobuf_c__allocator, len);
+	if (buf == NULL) {
+		return NULL;
+	}
+
+	if (protobuf_c_message_pack(message, buf) != len) {
+		goto END;
+	}
+
+	rv_message = protobuf_c_message_unpack(message->descriptor, NULL, len, buf);
+	rv_message->descriptor = message->descriptor;
+
+END:
+	if (buf) {
+		do_free(&protobuf_c__allocator, buf);
+	}
+
+	return rv_message;
+}
+

@@ -123,7 +123,12 @@ void MessageFieldGenerator::GenerateStaticInit(io::Printer* printer) const
 }
 void MessageFieldGenerator::GenerateDescriptorInitializer(io::Printer* printer) const
 {
-  string addr = "&" + ToLower(PkgName() + "_" + CamelToLower(FieldScope(descriptor_)->name())) + "_descriptor";
+  string full_name = descriptor_->message_type()->full_name();
+  string classname = full_name.substr(0, full_name.find("."));
+  string addr = "&" +  ToLower(classname + string("_"));
+  addr += CamelToLower(descriptor_->message_type()->name());
+  addr += "_descriptor";
+
   GenerateDescriptorInitializerGeneric(printer, false, "MESSAGE", addr);
 }
 

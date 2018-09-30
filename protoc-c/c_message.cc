@@ -274,10 +274,13 @@ GenerateStructDefinition(io::Printer* printer) {
     printer->Print(", {0}");
   }
   printer->Print(" }\n\n");
+
+#if 0
   printer->Print(vars, "/* ex) $ucclassname$_t *msg = $ucclassname$_NEW(); */\n");
   printer->Print(vars, "#define $ucclassname$_NEW() ($classname$_t*)$classname$_new()\n\n");
   printer->Print(vars, "/* ex) $ucclassname$_DEL(&msg);   // msg is pointer  */\n");
   printer->Print(vars, "#define $ucclassname$_DEL(m) free(*m);*m=NULL\n\n");
+#endif
   printer->Print(vars, "#define $ucclassname$_TYPE_NAME ((char*)$lcclassname$_descriptor.name)\n\n\n");
 }
 

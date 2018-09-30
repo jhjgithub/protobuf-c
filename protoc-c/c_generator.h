@@ -81,8 +81,9 @@ namespace compiler {
 namespace c {
 
 //#define PBC_FILE_PREFIX  "pbc_"
+//#define PBC_FILE_POSTFIX  "_pbc"
 #define PBC_FILE_PREFIX  ""
-#define PBC_FILE_POSTFIX  "_pbc"
+#define PBC_FILE_POSTFIX  ""
 
 // CodeGenerator implementation which generates a C++ source file and
 // header.  If you create your own protocol compiler binary and you want

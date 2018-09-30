@@ -18,6 +18,8 @@ global:
         protobuf_c_service_invoke_internal;
         protobuf_c_version;
         protobuf_c_version_number;
+		protobuf_c_message_alloc;
+		protobuf_c_message_dup;
 local:
         *;
 };

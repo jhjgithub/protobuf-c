@@ -1099,6 +1099,9 @@ protobuf_c_service_invoke_internal(
 	ProtobufCClosure closure,
 	void *closure_data);
 
+ProtobufCMessage* protobuf_c_message_alloc(ProtobufCMessageDescriptor *desc, ProtobufCAllocator *allocator);
+ProtobufCMessage* protobuf_c_message_dup(ProtobufCMessage *message);
+
 /**@}*/
 
 PROTOBUF_C__END_DECLS

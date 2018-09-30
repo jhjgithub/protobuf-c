@@ -275,12 +275,13 @@ GenerateStructDefinition(io::Printer* printer) {
   }
   printer->Print(" }\n\n");
 
-#if 0
+#if 0 //def USE_ALLOCATOR
   printer->Print(vars, "/* ex) $ucclassname$_t *msg = $ucclassname$_NEW(); */\n");
-  printer->Print(vars, "#define $ucclassname$_NEW() ($classname$_t*)$classname$_new()\n\n");
+  printer->Print(vars, "#define $ucclassname$_NEW() ($classname$_t*)$classname$_new()\n");
   printer->Print(vars, "/* ex) $ucclassname$_DEL(&msg);   // msg is pointer  */\n");
-  printer->Print(vars, "#define $ucclassname$_DEL(m) free(*m);*m=NULL\n\n");
+  printer->Print(vars, "#define $ucclassname$_DEL(m) free(*m);*m=NULL\n");
 #endif
+
   printer->Print(vars, "#define $ucclassname$_TYPE_NAME ((char*)$lcclassname$_descriptor.name)\n\n\n");
 }
 
@@ -297,6 +298,10 @@ GenerateHelperFunctionDeclarations(io::Printer* printer, bool is_submessage)
   printer->Print(vars,
 		 "/* $classname$ methods */\n"
 		 "void   $lcclassname$_init($classname$ *message);\n"
+#if 1 //def USE_ALLOCATOR
+		 "$lcclassname$_t*  $lcclassname$_new(void);\n"
+		 "$lcclassname$_t** $lcclassname$_repeated_new(uint32_t cnt);\n"
+#endif
 		);
   if (!is_submessage) {
     printer->Print(vars,
@@ -360,7 +365,25 @@ GenerateHelperFunctionDefinitions(io::Printer* printer, bool is_submessage)
 		 "{\n"
 		 "  static $classname$_t init_value = $ucclassname$_INIT;\n"
 		 "  *message = init_value;\n"
-		 "}\n");
+		 "  INIT_LIST_HEAD((list_head_t*)&message->anchor.link);\n"
+		 "}\n\n"
+#if 1 //def USE_ALLOCATOR
+		 "$classname$_t* $lcclassname$_new(void)\n"
+		 "{\n"
+		 "  $classname$_t *m = ($classname$_t*)protobuf_c_message_alloc(\n"
+		 "                     (ProtobufCMessageDescriptor*)&$lcclassname$_descriptor);\n"
+		 "}\n\n"
+		 "$classname$_t** $lcclassname$_repeated_new(uint32_t cnt)\n"
+		 "{\n"
+		 "  $classname$_t **rtmsg = ($classname$_t**)malloc(sizeof($classname$_t*)*cnt);\n\n"
+		 "  int i;\n\n"
+		 "  for (i=0 ; i<cnt ; i++) {\n"
+		 "    rtmsg[i] = ($classname$_t*)$classname$_new();\n"
+		 "   }\n\n"
+		 "  return rtmsg;\n"
+		 "}\n\n"
+#endif
+		 );
   if (!is_submessage) {
     printer->Print(vars,
 		 "size_t $lcclassname$_get_packed_size(const $classname$_t *message)\n"

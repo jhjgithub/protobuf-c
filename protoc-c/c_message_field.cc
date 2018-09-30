@@ -97,8 +97,12 @@ void MessageFieldGenerator::GenerateStructMembers(io::Printer* printer) const
     case FieldDescriptor::LABEL_REPEATED:
       printer->Print(vars, "size_t n_$name$$deprecated$;\n");
       printer->Print(vars, "$type$_t **$name$$deprecated$;\n");
+
+//#define USE_REPEATED_ALLOCATOR
+#if 1 //def USE_REPEATED_ALLOCATOR
       printer->Print(vars, "list_head_t l_$name$$deprecated$;\n");
-      printer->Print(vars, "void* (*l_$name$$deprecated$_new)(void);\n");
+      //printer->Print(vars, "void* (*l_$name$$deprecated$_new)(void);\n");
+#endif
       break;
   }
 }
@@ -117,7 +121,12 @@ void MessageFieldGenerator::GenerateStaticInit(io::Printer* printer) const
       printer->Print("NULL");
       break;
     case FieldDescriptor::LABEL_REPEATED:
-      printer->Print("0, NULL, {NULL, NULL}, NULL");
+      printer->Print("0, NULL");
+#if 1 //def USE_REPEATED_ALLOCATOR
+      //printer->Print(", list_head_t l_$name$$deprecated$\n");
+      printer->Print(", {NULL, NULL}");
+      //printer->Print(", NULL");
+#endif
       break;
   }
 }

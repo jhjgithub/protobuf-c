@@ -191,7 +191,7 @@ void FileGenerator::GenerateHeader(io::Printer* printer) {
     enum_generators_[i]->GenerateDefinition(printer);
   }
 
-#if 0
+#if 0 //def USE_ALLOCATOR
   // FIXME: Allocating function of each message
   printer->Print("\n/* --- list function prototype --- */\n\n");
 
@@ -287,42 +287,6 @@ void FileGenerator::GenerateSource(io::Printer* printer) {
     }
     printer->Print("\n");
   }
-#endif
-
-#if 0
-	///////////////////////////////////////////////////
-	// list function
-    // FIXME: Allocation of each message
-
-	for (int i = 0; i < file_->message_type_count(); i++) {
-		std::map<string, string> vars;
-
-		vars["typename"] = file_->message_type(i)->name();
-		vars["fullname"] = FullNameToLower(file_->message_type(i)->full_name());
-
-		printer->Print(vars, "$fullname$_t** $fullname$_rt_new(uint32_t cnt) \n{\n");
-		printer->Indent();
-		printer->Print(vars, "$fullname$_t **rtmsg = ($fullname$_t**)malloc(sizeof($fullname$_t*)*cnt);\n\n");
-		printer->Print(vars, "int i;\n\n");
-		printer->Print(vars, "for (i=0 ; i<cnt ; i++) {\n");
-		printer->Indent();
-		printer->Print(vars, "rtmsg[i] = ($fullname$_t*)malloc(sizeof($fullname$_t));\n\n");
-		printer->Print(vars, "$fullname$_init(rtmsg[i]);\n");
-
-		printer->Outdent();
-		printer->Print(vars, "}\n\n");
-		printer->Print(vars, "return rtmsg;\n\n");
-		printer->Outdent();
-		printer->Print(vars, "}\n\n");
-
-		printer->Print(vars, "void* $fullname$_new(void) \n{\n");
-		printer->Indent();
-		printer->Print(vars, "$fullname$_t *m = ($fullname$_t *)malloc(sizeof($fullname$_t));\n");
-		printer->Print(vars, "$fullname$_init(m);\n");
-	    printer->Print(vars, "return m;\n");
-		printer->Outdent();
-		printer->Print(vars, "}\n\n");
-	}
 #endif
 
   for (int i = 0; i < file_->message_type_count(); i++) {

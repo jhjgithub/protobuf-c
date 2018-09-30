@@ -3648,7 +3648,7 @@ protobuf_c_service_descriptor_get_method_by_name(const ProtobufCServiceDescripto
 
 #if 0
 ProtobufCMessage*
-protobuf_c_message_alloc(ProtobufCMessageDescriptor *desc, ProtobufCAllocator *allocator)
+protobuf_c_message_alloc(ProtobufCMessageDescriptor *desc)
 {
 	ProtobufCMessage *message = NULL;
 
@@ -3664,11 +3664,11 @@ protobuf_c_message_alloc(ProtobufCMessageDescriptor *desc, ProtobufCAllocator *a
 }
 #endif
 
-ProtobufCMessage*
-protobuf_c_message_alloc(ProtobufCMessageDescriptor *desc, ProtobufCAllocator *allocator)
+ProtobufCMessage* protobuf_c_message_alloc(ProtobufCMessageDescriptor *desc)
 {
 	ProtobufCMessage *message = NULL;
 	unsigned f;
+	ProtobufCAllocator *allocator = NULL;
 
 	if (allocator == NULL) {
 		allocator = &protobuf_c__allocator;
@@ -3682,34 +3682,25 @@ protobuf_c_message_alloc(ProtobufCMessageDescriptor *desc, ProtobufCAllocator *a
 		void *m_ptr = STRUCT_MEMBER_PTR(void *, message, desc->fields[f].offset);
 
 		if (desc->fields[f].label == PROTOBUF_C_LABEL_REPEATED) {
-			uint8_t *ptr = (uint8_t*)m_ptr;
+			uint8_t **ptr = (uint8_t**)m_ptr;
+			uint8_t **head;
 
-			ptr += sizeof(uint8_t*);
-			//INIT_LIST_HEAD((list_head_t*)ptr);
+			// do LIST_HEAD_INIT(name) { &(name), &(name) }
+			ptr ++;
+			head = ptr;
+			*ptr = (uint8_t*)head;
+			ptr ++;
+			*ptr = (uint8_t*)head;
+		}
+		else if (desc->fields[f].label == PROTOBUF_C_LABEL_REQUIRED && 
+				 desc->fields[f].type == PROTOBUF_C_TYPE_MESSAGE) {
 
-			if (desc->fields[f].type == PROTOBUF_C_TYPE_STRING) {
-				// user self;
-			}
-			else if (desc->fields[f].type == PROTOBUF_C_TYPE_BYTES) {
-				// user self;
-			}
-			else if (desc->fields[f].type == PROTOBUF_C_TYPE_MESSAGE) {
-				// user self;
-			}
-		}
-		else if (desc->fields[f].type == PROTOBUF_C_TYPE_STRING) {
-			// user self;
-		}
-		else if (desc->fields[f].type == PROTOBUF_C_TYPE_BYTES) {
-			// user self;
-		}
-		else if (desc->fields[f].type == PROTOBUF_C_TYPE_MESSAGE) {
 			ProtobufCMessage **m = m_ptr;
 			ProtobufCMessage *field_message;
-			ProtobufCMessageDescriptor *field_desc = (ProtobufCMessageDescriptor*)desc->fields[f].descriptor;
-			
-			field_message = protobuf_c_message_alloc(field_desc, allocator);
+			ProtobufCMessageDescriptor *field_desc = 
+				(ProtobufCMessageDescriptor*)desc->fields[f].descriptor;
 
+			field_message = protobuf_c_message_alloc(field_desc);
 			if (field_message == NULL) {
 				protobuf_c_message_free_unpacked(message, allocator);
 				message = NULL;

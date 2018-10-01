@@ -201,11 +201,7 @@ GenerateStructDefinition(io::Printer* printer) {
   printer->Print(vars,
     "typedef struct $classname$_s {\n"
     "  ProtobufCMessage base;\n"
-	"  struct {\n"
-	"    list_head_t link;\n"
-	"    uint32_t initialized:1,\n"
-	"             dummy:31;\n"
-	"  } anchor;\n\n"
+	"  list_head_t anchor;\n\n"
 	);
 
   // Generate fields.
@@ -257,7 +253,8 @@ GenerateStructDefinition(io::Printer* printer) {
 
   printer->Print(vars, "#define $ucclassname$_INIT \\\n"
 		       " { PROTOBUF_C_MESSAGE_INIT (&$lcclassname$_descriptor) \\\n    ");
-  printer->Print(", { {NULL, NULL}, 0, 0}");
+  // for anchor
+  printer->Print(", {NULL, NULL}");
   for (int i = 0; i < descriptor_->field_count(); i++) {
     const FieldDescriptor *field = descriptor_->field(i);
     if (field->containing_oneof() == NULL) {
@@ -365,13 +362,14 @@ GenerateHelperFunctionDefinitions(io::Printer* printer, bool is_submessage)
 		 "{\n"
 		 "  static $classname$_t init_value = $ucclassname$_INIT;\n"
 		 "  *message = init_value;\n"
-		 "  INIT_LIST_HEAD((list_head_t*)&message->anchor.link);\n"
+		 "  INIT_LIST_HEAD((list_head_t*)&message->anchor);\n"
 		 "}\n\n"
 #if 1 //def USE_ALLOCATOR
 		 "$classname$_t* $lcclassname$_new(void)\n"
 		 "{\n"
 		 "  $classname$_t *m = ($classname$_t*)protobuf_c_message_alloc(\n"
 		 "                     (ProtobufCMessageDescriptor*)&$lcclassname$_descriptor);\n"
+		 "  return m;\n"
 		 "}\n\n"
 		 "$classname$_t** $lcclassname$_repeated_new(uint32_t cnt)\n"
 		 "{\n"

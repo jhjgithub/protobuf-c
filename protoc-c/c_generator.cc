@@ -175,7 +175,7 @@ void OutDescName(GenDescList *gen, const Descriptor *descriptor_)
 	desc	+= "\"" + descriptor_->full_name() + "\",\t" +
 		"&" + PkgClassNameToLower() + "_descriptor" +
 		" },";
-	desc = ToLower(desc);
+	//desc = ToLower(desc);
 	gen->sl_desc->push_back(desc);
 }
 
